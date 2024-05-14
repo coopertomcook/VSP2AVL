@@ -1,7 +1,7 @@
 import numpy as np
 import re # Regular Expressions
 import os
-import VSP2AVL_utils as deps
+import utilities as deps
 from pathlib import Path
 
 
