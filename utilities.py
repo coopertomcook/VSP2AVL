@@ -342,7 +342,7 @@ def interpret_control_surface(component, tolerance):
     return component
 
 
-def create_lifting_surface(component, vortices_per_unit_length):
+def create_lifting_surface(component, vortices_per_unit_length, loadpath, savepath):
     AVL_file = []
     surface_preamble = '''#--------------------------------------------------
 SURFACE 

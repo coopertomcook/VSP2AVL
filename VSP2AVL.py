@@ -4,20 +4,25 @@ import os
 import utilities as deps
 from pathlib import Path
 
-
+#### USER SETTINGS #####################################
 # Change the working directory
-filepath = r"D:\Actual Documents\UC Davis\Programming\VSP2AVL\test_data\PelicanC6_DegenGeom.csv" # CSV file name
-savepath = r"D:\Actual Documents\UC Davis\Programming\VSP2AVL\save_data"
+filepath = r"" # CSV file name
 Sref = 8500
 Cref = 33
 Bref = 265
-Xref, Yref, Zref = [122.338097-0.048*Cref, 0, 2.78]
+Xref, Yref, Zref = [0, 0, 0]
 mach_number = 0.82 #input("Input default mach number: ")
 tolerance = 0.05
 write_bodies = True
 vortices_per_unit_length = 0.5
+########################################################
+
+
+
 
 # change directory and specify file name
+loadpath = Path(filepath).absolute().parent
+savepath = loadpath
 path = Path(filepath).absolute()
 os.chdir(path.parent)
 filename = path.name
@@ -92,7 +97,7 @@ AVL_file = [preamble]
 # lifting component preamble
 for component in components:
     if component['is_lifting_surface'] == True or (component['standard_body'] == False and write_bodies):
-        AVL_file += deps.create_lifting_surface(component, vortices_per_unit_length)
+        AVL_file += deps.create_lifting_surface(component, vortices_per_unit_length, loadpath, savepath)
 
     if component['is_body'] == True and component['standard_body'] == True and write_bodies:
         AVL_file += deps.create_body(component)
