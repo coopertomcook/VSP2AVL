@@ -8,6 +8,8 @@ In its current state, VSP2AVL can convert basic lifting and control surfaces int
 
 VSP2AVL has limited capability to convert bodies into AVL, and—at the moment—it can only convert them into AVL *bodies*, not cruciform lifting surfaces, which is more recommended.
 
+VSP2AVL has been tested on Python 3.11.5 and NumPy 1.24.3.
+
 ## Usage
 1. With a .vsp3 file open in OpenVSP, export the model geometry using `Analysis > DegenGeom > .csv > Execute`. 
 

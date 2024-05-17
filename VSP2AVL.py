@@ -1,18 +1,18 @@
-import numpy as np
-import re # Regular Expressions
+import re
 import os
+import numpy as np
 import utilities as deps
 from pathlib import Path
 
 #### USER SETTINGS #####################################
 # Change the working directory
 filepath = r"" # CSV file name
-Sref = 8500
-Cref = 33
-Bref = 265
-Xref, Yref, Zref = [0, 0, 0]
-mach_number = 0.82 #input("Input default mach number: ")
-tolerance = 0.05
+Sref = 8500 # reference wing area
+Cref = 33 # reference chord length
+Bref = 265 # reference span
+Xref, Yref, Zref = [0, 0, 0] # center of gravity location
+mach_number = 0.82 # default mach number
+tolerance = 0.05 # minimum geometric distance between sections
 write_bodies = True
 vortices_per_unit_length = 0.5
 ########################################################
