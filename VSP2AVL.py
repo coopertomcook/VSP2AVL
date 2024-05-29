@@ -7,8 +7,8 @@ import matplotlib.pyplot as plt
 
 #### USER SETTINGS #####################################
 # Change the working directory
-filepath = r"D:\Actual Documents\UC Davis\3rd Year\9 Spring 2024\EAE 130B\VSP2AVL\data\PelicanC6_DegenGeom.csv"                  # CSV file name
-refNum = 1                      # reference surface number (set to false if unknown)
+filepath = r""                  # CSV file name
+refNum = False                  # reference surface number (set to false if unknown)
 Sref = 0                        # reference wing area
 Cref = 0                        # reference chord length
 Bref = 0                        # reference span
@@ -17,6 +17,7 @@ mach_number = 0.82              # default mach number
 tolerance = 0.05                # minimum geometric distance between sections
 write_bodies = True             # choose whether to model bodies or not (experimental)
 vortices_per_unit_length = 0.5  # resolution of vortex lattices
+DebugGeom = False
 ########################################################
 
 
@@ -47,7 +48,7 @@ for i, line in enumerate(DegenGeom):
         component = geom_data.geometry_component()
         component.begin_index = i
 
-        next_line = re.split(r',\s*',DegenGeom[i+1]) # thank you Weston
+        next_line = re.split(r',\s*',DegenGeom[i+1])
         component.is_lifting_surface = next_line[0] == 'LIFTING_SURFACE'
         component.is_body = next_line[0] == 'BODY'
 
@@ -125,44 +126,42 @@ with open(AVL_filename + '.avl', 'w+') as f:
         f.write(string)
 
 
-fig = plt.figure()
-ax = fig.add_subplot(projection='3d')
-for component in components:
-    if component.is_lifting_surface:
-        le_x = []
-        le_y = []
-        le_z = []
-        te_x = []
-        te_y = []
-        te_z = []
-        for i in range(len(component.stick_le[0])):
-            if component.stick_reoriented:
-                component.stick_section_angle[0][i] = -(component.stick_section_angle[0][i] - np.pi)
+if DebugGeom:
+    fig = plt.figure()
+    ax = fig.add_subplot(projection='3d')
+    for component in components:
+        if component.is_lifting_surface:
+            le_x = []
+            le_y = []
+            le_z = []
+            te_x = []
+            te_y = []
+            te_z = []
+            for i in range(len(component.stick_le[0])):
+                le_x.append(component.stick_le[0][i][0])
+                le_y.append(component.stick_le[0][i][1])
+                le_z.append(component.stick_le[0][i][2])
+                te_x.append(le_x[i] + component.stick_chord[0][i]*np.cos(np.deg2rad(component.stick_Ainc[0][i])))
+                te_y.append(le_y[i] + component.stick_chord[0][i]*np.sin(np.deg2rad(component.stick_Ainc[0][i]))*np.sin(component.stick_section_angle[0][i]))
+                te_z.append(le_z[i] - component.stick_chord[0][i]*np.sin(np.deg2rad(component.stick_Ainc[0][i]))*np.cos(component.stick_section_angle[0][i]))
 
-            le_x.append(component.stick_le[0][i][0])
-            le_y.append(component.stick_le[0][i][1])
-            le_z.append(component.stick_le[0][i][2])
-            te_x.append(le_x[i] + component.stick_chord[0][i]*np.cos(np.deg2rad(component.stick_Ainc[0][i])))
-            te_y.append(le_y[i] + component.stick_chord[0][i]*np.sin(np.deg2rad(component.stick_Ainc[0][i]))*np.sin(component.stick_section_angle[0][i]))
-            te_z.append(le_z[i] - component.stick_chord[0][i]*np.sin(np.deg2rad(component.stick_Ainc[0][i]))*np.cos(component.stick_section_angle[0][i]))
+            if component.hingeline_data is not None:
+                for j, name in enumerate(component.hingeline_name):
+                    he_x = []
+                    he_y = []
+                    he_z = []
+                    for i in range(len(component.stick_le[0])):
+                        if component.hingeline_data[name]['is_here'][i]:
+                            he_x.append(le_x[i] + component.stick_chord[0][i]*np.cos(np.deg2rad(component.stick_Ainc[0][i]))*component.hingeline_data[name]['x_c'][i])
+                            he_y.append(le_y[i] + component.stick_chord[0][i]*np.sin(np.deg2rad(component.stick_Ainc[0][i]))*np.sin(component.stick_section_angle[0][i])*component.hingeline_data[name]['x_c'][i])
+                            he_z.append(le_z[i] - component.stick_chord[0][i]*np.sin(np.deg2rad(component.stick_Ainc[0][i]))*np.cos(component.stick_section_angle[0][i])*component.hingeline_data[name]['x_c'][i])
+                    ax.plot(he_x, he_y, he_z, color='orange')
 
-        if component.hingeline_data != None:
-            for j, name in enumerate(component.hingeline_name):
-                he_x = []
-                he_y = []
-                he_z = []
-                for i in range(len(component.stick_le[0])):
-                    if component.hingeline_data[name]['is_here'][i] or (i > 0 and component.hingeline_data[name]['is_here'][i-1]):
-                        he_x.append(le_x[i] + component.stick_chord[0][i]*np.cos(np.deg2rad(component.stick_Ainc[0][i]))*component.hingeline_data[name]['x_c'][i])
-                        he_y.append(le_y[i] + component.stick_chord[0][i]*np.sin(np.deg2rad(component.stick_Ainc[0][i]))*np.sin(component.stick_section_angle[0][i])*component.hingeline_data[name]['x_c'][i])
-                        he_z.append(le_z[i] - component.stick_chord[0][i]*np.sin(np.deg2rad(component.stick_Ainc[0][i]))*np.cos(component.stick_section_angle[0][i])*component.hingeline_data[name]['x_c'][i])
-                ax.plot(he_x, he_y, he_z, color='orange')
+            ax.plot(le_x, le_y, le_z, color='black')
+            ax.plot(te_x, te_y, te_z, color='blue')
 
-        ax.plot(le_x, le_y, le_z, color='black')
-        ax.plot(te_x, te_y, te_z, color='blue')
-
-ax.axis('equal')
-plt.show()
+    ax.axis('equal')
+    plt.show()
     
 
-print("[VSP2AVL] AVL geometry file saved as \"{}.avl\"".format(AVL_filename))
+print(f"[VSP2AVL] AVL geometry file saved as \"{AVL_filename}.avl\"\n")

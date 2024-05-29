@@ -85,7 +85,7 @@ class geometry_component():
             self.stick_orig_num.append([])
             self.stick_section_dist.append([0])
             self.stick_section_tolerance.append([0])
-            self.stick_section_angle.append([])
+            self.stick_section_angle.append([0])
 
             # save data from STICK_NODE section
             for k,line in enumerate(lines[self.stick_node_begin_index[m]+2:self.stick_node_end_index[m]+1]):
@@ -109,7 +109,7 @@ class geometry_component():
                     self.stick_section_angle[m].append(np.arctan2(self.stick_le[m][k][2] - self.stick_le[m][k-1][2], self.stick_le[m][k][1] - self.stick_le[m][k-1][1]))
             self.stick_section_dist[m].append(0)
             self.stick_section_tolerance[m].append(0)
-            self.stick_section_angle[m].insert(0,self.stick_section_angle[m][0])
+            self.stick_section_angle[m].append(0)
 
             if self.body_standard_body == None or self.is_lifting_surface or self.body_standard_body:
                 # re-orient to spanwise low to high
@@ -236,7 +236,7 @@ class geometry_component():
         for iter in range(len(self.stick_le[0])-1):
             self.stick_section_dist[0][iter+1] = np.sqrt(np.sum(np.square(self.stick_le[0][iter+1][1:3] - self.stick_le[0][iter][1:3])))
             self.stick_section_tolerance[0][iter+1] = self.stick_section_dist[0][iter+1] * tolerance
-            self.stick_section_angle[0][iter+1] = (np.arctan2(self.stick_le[0][iter][2] - self.stick_le[0][iter-1][2], self.stick_le[0][iter][1] - self.stick_le[0][iter-1][1]))
+            self.stick_section_angle[0][iter+1] = np.arctan2(self.stick_le[0][iter+1][2] - self.stick_le[0][iter][2], self.stick_le[0][iter+1][1] - self.stick_le[0][iter][1])
 
 
     def interpret_control_surface(self, tolerance):
@@ -255,42 +255,38 @@ class geometry_component():
 
                     # project hinge difference vectors onto section difference vectors to check if hinge starts and ends are within tolerance of existing sections
                     hinge_start_distance_vec = self.hingeline_start[n][1:3] - self.stick_le[0][i][1:3]
-                    # print('current hsdv: ', hinge_start_distance_vec)
                     hinge_start_distance = np.dot(hinge_start_distance_vec, self.stick_le[0][i+1][1:3] - self.stick_le[0][i][1:3]) / self.stick_section_dist[0][i+1]
-                    # print(hinge_start_distance)
-                    hinge_start_angle = np.arctan2(hinge_start_distance_vec[1], hinge_start_distance_vec[0])
+
                     hinge_end_distance_vec = self.hingeline_end[n][1:3] - self.stick_le[0][i][1:3]
                     hinge_end_distance = np.dot(hinge_end_distance_vec, self.stick_le[0][i+1][1:3] - self.stick_le[0][i][1:3]) / self.stick_section_dist[0][i+1]
+                    
+                    hinge_start_angle = np.arctan2(hinge_start_distance_vec[1], hinge_start_distance_vec[0])
                     hinge_end_angle = np.arctan2(hinge_end_distance_vec[1], hinge_end_distance_vec[0])
                     #### implement angle tolerance check later #### TODO
 
                     # check if hinge starts or ends at current section
                     start_bounds = [hinge_start_distance - self.stick_section_tolerance[0][i+1], hinge_start_distance + self.stick_section_tolerance[0][i+1]]
                     end_bounds = [hinge_end_distance - self.stick_section_tolerance[0][i+1], hinge_end_distance + self.stick_section_tolerance[0][i+1]]
-
                     starts_here = start_bounds[0] < 0 and start_bounds[1] > 0
                     ends_here = end_bounds[0] < 0 and end_bounds[1] > 0
-                    
-                    # print("starts here: ", starts_here)
-                    # print("ends here: ", ends_here)
 
                     # check if control surface exists at current section
                     is_here = hinge_start_distance < 0 and hinge_end_distance > 0
-                    # print("is here: ", is_here)
 
                     # check if hinge starts or ends in the current section
                     is_hingeline_start_between = hinge_start_distance > 0 and hinge_start_distance < (self.stick_section_dist[0][i+1] - self.stick_section_tolerance[0][i+1+1]) and not starts_here
                     is_hingeline_end_between = hinge_end_distance > 0 and hinge_end_distance < (self.stick_section_dist[0][i+1] - self.stick_section_tolerance[0][i+1+1]) and not ends_here
 
-                    print(f"here  = {is_here}")
-                    print(f"start = {is_hingeline_start_between}")
-                    print(f"end   = {is_hingeline_end_between}")
+                    # print(f"here  = {is_here}")
+                    # print(f"start = {is_hingeline_start_between}")
+                    # print(f"end   = {is_hingeline_end_between}")
 
                     ### STARTS WITHIN?
                     if is_hingeline_start_between:
                         # print('start between')
                         hingepoint = self.hingeline_start[n]
 
+                        ## LEADING EDGE
                         # interpolate x, y, z coordinates, chord, and angle of incidence of section from sections on either side
                         x_dist_between_sects = self.stick_le[0][i+1][0]-self.stick_le[0][i][0] # get delta x
                         y_dist_between_sects = self.stick_le[0][i+1][1]-self.stick_le[0][i][1] # get delta y
@@ -298,20 +294,31 @@ class geometry_component():
                         interped_x = self.stick_le[0][i][0] + (x_dist_between_sects/self.stick_section_dist[0][i+1])*hinge_start_distance
                         interped_y = self.stick_le[0][i][1] + (y_dist_between_sects/self.stick_section_dist[0][i+1])*hinge_start_distance
                         interped_z = self.stick_le[0][i][2] + (z_dist_between_sects/self.stick_section_dist[0][i+1])*hinge_start_distance
+
+                        ## TRAILING EDGE
+                        # interpolate x, y, z coordinates, chord, and angle of incidence of section from sections on either side
+                        te_x_dist_between_sects = self.stick_te[0][i+1][0]-self.stick_te[0][i][0] # get delta x
+                        te_y_dist_between_sects = self.stick_te[0][i+1][1]-self.stick_te[0][i][1] # get delta y
+                        te_z_dist_between_sects = self.stick_te[0][i+1][2]-self.stick_te[0][i][2] # get delta z
+                        te_interped_x = self.stick_te[0][i][0] + (te_x_dist_between_sects/self.stick_section_dist[0][i+1])*hinge_start_distance
+                        te_interped_y = self.stick_te[0][i][1] + (te_y_dist_between_sects/self.stick_section_dist[0][i+1])*hinge_start_distance
+                        te_interped_z = self.stick_te[0][i][2] + (te_z_dist_between_sects/self.stick_section_dist[0][i+1])*hinge_start_distance
                         
+
                         hingeline_le = np.array([interped_x,interped_y,interped_z])
+                        hingeline_te = np.array([te_interped_x,te_interped_y,te_interped_z])
                         interped_chord = self.stick_chord[0][i] + ((self.stick_chord[0][i+1]-self.stick_chord[0][i])/self.stick_section_dist[0][i+1])*hinge_start_distance
                         interped_Ainc = self.stick_Ainc[0][i] + ((self.stick_Ainc[0][i+1]-self.stick_Ainc[0][i])/self.stick_section_dist[0][i+1])*hinge_start_distance
                         x_c_control_surface = abs(interped_x-hingepoint[0])/interped_chord
 
                         self.stick_le[0].insert(i+1,hingeline_le)
-                        self.stick_te[0].insert(i+1,np.array([0,0,0]))
+                        self.stick_te[0].insert(i+1,hingeline_te)
                         self.stick_chord[0].insert(i+1,interped_chord)
                         self.stick_Ainc[0].insert(i+1,interped_Ainc)
                         self.stick_orig_num[0].insert(i+1,(self.stick_orig_num[0][i+1]+self.stick_orig_num[0][i])/2)
                         self.stick_section_dist[0].insert(i+1+1,np.sqrt(np.sum(np.square(self.stick_le[0][i+1][1:3] - self.stick_le[0][i][1:3]))))
                         self.stick_section_tolerance[0].insert(i+1+1,self.stick_section_dist[0][i+1+1] * tolerance)
-                        self.stick_section_angle[0].insert(i+1, (np.arctan2(self.stick_le[0][i][2] - self.stick_le[0][i-1][2], self.stick_le[0][i][1] - self.stick_le[0][i-1][1])))
+                        self.stick_section_angle[0].insert(i+1, (np.arctan2(self.stick_le[0][i+1][2] - self.stick_le[0][i][2], self.stick_le[0][i+1][1] - self.stick_le[0][i][1])))
 
                         index_modifier += 1
                         i += 1
@@ -323,6 +330,7 @@ class geometry_component():
                         # print('end between')
                         hingepoint = self.hingeline_end[n]
 
+                        ## LEADING EDGE
                         # interpolate x, y, z coordinates, chord, and angle of incidence of section from sections on either side
                         x_dist_between_sects = self.stick_le[0][i+1][0]-self.stick_le[0][i][0] # get delta x
                         y_dist_between_sects = self.stick_le[0][i+1][1]-self.stick_le[0][i][1] # get delta y
@@ -330,20 +338,31 @@ class geometry_component():
                         interped_x = self.stick_le[0][i][0] + (x_dist_between_sects/self.stick_section_dist[0][i+1])*hinge_end_distance
                         interped_y = self.stick_le[0][i][1] + (y_dist_between_sects/self.stick_section_dist[0][i+1])*hinge_end_distance
                         interped_z = self.stick_le[0][i][2] + (z_dist_between_sects/self.stick_section_dist[0][i+1])*hinge_end_distance
+
+                        ## TRAILING EDGE
+                        # interpolate x, y, z coordinates, chord, and angle of incidence of section from sections on either side
+                        te_x_dist_between_sects = self.stick_te[0][i+1][0]-self.stick_te[0][i][0] # get delta x
+                        te_y_dist_between_sects = self.stick_te[0][i+1][1]-self.stick_te[0][i][1] # get delta y
+                        te_z_dist_between_sects = self.stick_te[0][i+1][2]-self.stick_te[0][i][2] # get delta z
+                        te_interped_x = self.stick_te[0][i][0] + (te_x_dist_between_sects/self.stick_section_dist[0][i+1])*hinge_end_distance
+                        te_interped_y = self.stick_te[0][i][1] + (te_y_dist_between_sects/self.stick_section_dist[0][i+1])*hinge_end_distance
+                        te_interped_z = self.stick_te[0][i][2] + (te_z_dist_between_sects/self.stick_section_dist[0][i+1])*hinge_end_distance
+
                         
                         hingeline_le = np.array([interped_x,interped_y,interped_z])
+                        hingeline_te = np.array([te_interped_x,te_interped_y,te_interped_z])
                         interped_chord = self.stick_chord[0][i] + ((self.stick_chord[0][i+1]-self.stick_chord[0][i])/self.stick_section_dist[0][i+1])*hinge_end_distance
                         interped_Ainc = self.stick_Ainc[0][i] + ((self.stick_Ainc[0][i+1]-self.stick_Ainc[0][i])/self.stick_section_dist[0][i+1])*hinge_end_distance
                         x_c_control_surface = abs(interped_x-hingepoint[0])/interped_chord
 
                         self.stick_le[0].insert(i+1,hingeline_le)
-                        self.stick_te[0].insert(i+1,np.array([0,0,0]))
+                        self.stick_te[0].insert(i+1,hingeline_te)
                         self.stick_chord[0].insert(i+1,interped_chord)
                         self.stick_Ainc[0].insert(i+1,interped_Ainc)
                         self.stick_orig_num[0].insert(i+1,(self.stick_orig_num[0][i+1]+self.stick_orig_num[0][i])/2)
                         self.stick_section_dist[0].insert(i+1+1,np.sqrt(np.sum(np.square(self.stick_le[0][i+1][1:3] - self.stick_le[0][i][1:3]))))
                         self.stick_section_tolerance[0].insert(i+1+1,self.stick_section_dist[0][i+1+1] * tolerance)
-                        self.stick_section_angle[0].insert(i+1, (np.arctan2(self.stick_le[0][i][2] - self.stick_le[0][i-1][2], self.stick_le[0][i][1] - self.stick_le[0][i-1][1])))
+                        self.stick_section_angle[0].insert(i+1, (np.arctan2(self.stick_le[0][i+1][2] - self.stick_le[0][i][2], self.stick_le[0][i+1][1] - self.stick_le[0][i][1])))
 
                         index_modifier += 1
 
