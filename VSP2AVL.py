@@ -7,8 +7,8 @@ import matplotlib.pyplot as plt
 
 #### USER SETTINGS #####################################
 # Change the working directory
-filepath = r"D:\Actual Documents\UC Davis\3rd Year\9 Spring 2024\EAE 130B\VSP2AVL\data\PelicanC6_DegenGeom.csv"                  # CSV file name
-refNum = 1                  # reference surface number (set to false if unknown)
+filepath = r""                  # CSV file name
+refNum = False                  # reference surface number (set to false if unknown)
 Sref = 0                        # reference wing area
 Cref = 0                        # reference chord length
 Bref = 0                        # reference span
@@ -16,9 +16,9 @@ Xref, Yref, Zref = [0, 0, 0]    # center of gravity location
 mach_number = 0.82              # default mach number
 tolerance = 0.05                # minimum allowed geometric distance between sections for hingeline section creation (make small)
 control_surfaces = True         # check for control surfaces in DegenGeom and add them to AVL file (may create new sections)
-write_bodies = True             # choose whether to model bodies or not (experimental)
+write_bodies = False            # choose whether to model bodies or not (experimental)
 vortices_per_unit_length = 0.5  # resolution of vortex lattices
-debug_geom = True
+debug_geom = False
 ########################################################
 
 
