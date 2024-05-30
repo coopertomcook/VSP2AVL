@@ -7,17 +7,18 @@ import matplotlib.pyplot as plt
 
 #### USER SETTINGS #####################################
 # Change the working directory
-filepath = r""                  # CSV file name
-refNum = False                  # reference surface number (set to false if unknown)
+filepath = r"D:\Actual Documents\UC Davis\3rd Year\9 Spring 2024\EAE 130B\VSP2AVL\data\PelicanC6_DegenGeom.csv"                  # CSV file name
+refNum = 1                  # reference surface number (set to false if unknown)
 Sref = 0                        # reference wing area
 Cref = 0                        # reference chord length
 Bref = 0                        # reference span
 Xref, Yref, Zref = [0, 0, 0]    # center of gravity location
 mach_number = 0.82              # default mach number
-tolerance = 0.05                # minimum geometric distance between sections
+tolerance = 0.05                # minimum allowed geometric distance between sections for hingeline section creation (make small)
+control_surfaces = True         # check for control surfaces in DegenGeom and add them to AVL file (may create new sections)
 write_bodies = True             # choose whether to model bodies or not (experimental)
 vortices_per_unit_length = 0.5  # resolution of vortex lattices
-DebugGeom = False
+debug_geom = True
 ########################################################
 
 
@@ -70,12 +71,12 @@ for i, component in enumerate(components):
     components[i].get_SURFACE_NODE_data(DegenGeom)
     components[i].get_STICK_NODE_data(DegenGeom, tolerance)
 
-    if component.is_lifting_surface:
+    if component.is_lifting_surface and control_surfaces:
         components[i].get_control_surface_data(DegenGeom)
         components[i].interpret_control_surface(tolerance)
 
 # calculate reference surface data
-if Sref == 0 or Cref == 0 and refNum != False:
+if Sref == 0 or Cref == 0 and refNum is not False:
     Sref = 0
     Cref = 0
 
@@ -126,7 +127,7 @@ with open(AVL_filename + '.avl', 'w+') as f:
         f.write(string)
 
 
-if DebugGeom:
+if debug_geom:
     fig = plt.figure()
     ax = fig.add_subplot(projection='3d')
     for component in components:
@@ -156,9 +157,15 @@ if DebugGeom:
                             he_y.append(le_y[i] + component.stick_chord[0][i]*np.sin(np.deg2rad(component.stick_Ainc[0][i]))*np.sin(component.stick_section_angle[0][i])*component.hingeline_data[name]['x_c'][i])
                             he_z.append(le_z[i] - component.stick_chord[0][i]*np.sin(np.deg2rad(component.stick_Ainc[0][i]))*np.cos(component.stick_section_angle[0][i])*component.hingeline_data[name]['x_c'][i])
                     ax.plot(he_x, he_y, he_z, color='orange')
+                    # ax.scatter(he_x, he_y, he_z, color='orange')
 
             ax.plot(le_x, le_y, le_z, color='black')
             ax.plot(te_x, te_y, te_z, color='blue')
+            # ax.scatter(le_x, le_y, le_z, color='black')
+            # ax.scatter(te_x, te_y, te_z, color='blue')
+
+            for i in range(len(le_x)):
+                ax.plot([le_x[i], te_x[i]], [le_y[i], te_y[i]], [le_z[i], te_z[i]], color='green')
 
     ax.axis('equal')
     plt.show()

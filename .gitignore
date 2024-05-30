@@ -1,5 +1,7 @@
-save_data
-test_data
 __pycache__
 .git
 .gitignore
+.pytest_cache
+.vscode
+save_data
+test_data

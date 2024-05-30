@@ -25,7 +25,6 @@ class geometry_component():
         self.stick_Ainc = []
         self.stick_orig_num = []
         self.stick_section_dist = []
-        self.stick_section_tolerance = []
         self.stick_section_angle = []
         self.stick_reoriented = False
 
@@ -84,7 +83,6 @@ class geometry_component():
             self.stick_Ainc.append([])
             self.stick_orig_num.append([])
             self.stick_section_dist.append([0])
-            self.stick_section_tolerance.append([0])
             self.stick_section_angle.append([0])
 
             # save data from STICK_NODE section
@@ -105,10 +103,8 @@ class geometry_component():
                 # calculate distance between sections, tolerance for each section, and angle between each section in YZ plane
                 if k != 0:
                     self.stick_section_dist[m].append(np.sqrt(np.sum(np.square(self.stick_le[m][k][1:3] - self.stick_le[m][k-1][1:3]))))
-                    self.stick_section_tolerance[m].append(self.stick_section_dist[m][k-1] * tolerance)
                     self.stick_section_angle[m].append(np.arctan2(self.stick_le[m][k][2] - self.stick_le[m][k-1][2], self.stick_le[m][k][1] - self.stick_le[m][k-1][1]))
             self.stick_section_dist[m].append(0)
-            self.stick_section_tolerance[m].append(0)
             self.stick_section_angle[m].append(0)
 
             if self.body_standard_body == None or self.is_lifting_surface or self.body_standard_body:
@@ -121,7 +117,6 @@ class geometry_component():
                     self.stick_Ainc[m] = self.stick_Ainc[m][::-1]
                     self.stick_orig_num[m] = self.stick_orig_num[m][::-1]
                     self.stick_section_dist[m] = self.stick_section_dist[m][::-1]
-                    self.stick_section_tolerance[m] = self.stick_section_tolerance[m][::-1]
                     self.stick_section_angle[m] = self.stick_section_angle[m][::-1]
                     self.stick_reoriented = True
 
@@ -135,9 +130,10 @@ class geometry_component():
                     self.stick_Ainc[m] = self.stick_Ainc[m][::-1]
                     self.stick_orig_num[m] = self.stick_orig_num[m][::-1]
                     self.stick_section_dist[m] = self.stick_section_dist[m][::-1]
-                    self.stick_section_tolerance[m] = self.stick_section_tolerance[m][::-1]
                     self.stick_section_angle[m] = self.stick_section_angle[m][::-1]
                     self.stick_reoriented = True
+
+        self.recalc_sections()
 
         
 
@@ -232,10 +228,9 @@ class geometry_component():
 
 
 
-    def recalc_sections(self, tolerance):
+    def recalc_sections(self):
         for iter in range(len(self.stick_le[0])-1):
             self.stick_section_dist[0][iter+1] = np.sqrt(np.sum(np.square(self.stick_le[0][iter+1][1:3] - self.stick_le[0][iter][1:3])))
-            self.stick_section_tolerance[0][iter+1] = self.stick_section_dist[0][iter+1] * tolerance
             self.stick_section_angle[0][iter+1] = np.arctan2(self.stick_le[0][iter+1][2] - self.stick_le[0][iter][2], self.stick_le[0][iter+1][1] - self.stick_le[0][iter][1])
 
 
@@ -248,34 +243,31 @@ class geometry_component():
                 for orig_index in range(len(self.stick_le[0])-1):
                     i = orig_index + index_modifier # index_modifier used if section is added due to hingeline start or end
 
-                    self.recalc_sections(tolerance)
-
-                    # print('current le: ', self.stick_le[0]'][i][1:3])
-                    # print('current hs: ', self.hingeline_start'][n][1:3])
+                    self.recalc_sections()
 
                     # project hinge difference vectors onto section difference vectors to check if hinge starts and ends are within tolerance of existing sections
                     hinge_start_distance_vec = self.hingeline_start[n][1:3] - self.stick_le[0][i][1:3]
                     hinge_start_distance = np.dot(hinge_start_distance_vec, self.stick_le[0][i+1][1:3] - self.stick_le[0][i][1:3]) / self.stick_section_dist[0][i+1]
-
-                    hinge_end_distance_vec = self.hingeline_end[n][1:3] - self.stick_le[0][i][1:3]
-                    hinge_end_distance = np.dot(hinge_end_distance_vec, self.stick_le[0][i+1][1:3] - self.stick_le[0][i][1:3]) / self.stick_section_dist[0][i+1]
                     
                     hinge_start_angle = np.arctan2(hinge_start_distance_vec[1], hinge_start_distance_vec[0])
-                    hinge_end_angle = np.arctan2(hinge_end_distance_vec[1], hinge_end_distance_vec[0])
                     #### implement angle tolerance check later #### TODO
 
                     # check if hinge starts or ends at current section
-                    start_bounds = [hinge_start_distance - self.stick_section_tolerance[0][i+1], hinge_start_distance + self.stick_section_tolerance[0][i+1]]
-                    end_bounds = [hinge_end_distance - self.stick_section_tolerance[0][i+1], hinge_end_distance + self.stick_section_tolerance[0][i+1]]
+                    start_bounds = [hinge_start_distance - tolerance, hinge_start_distance + tolerance]
                     starts_here = start_bounds[0] < 0 and start_bounds[1] > 0
-                    ends_here = end_bounds[0] < 0 and end_bounds[1] > 0
 
                     # check if control surface exists at current section
                     is_here = hinge_start_distance < 0 and hinge_end_distance > 0
 
-                    # check if hinge starts or ends in the current section
-                    is_hingeline_start_between = hinge_start_distance > 0 and hinge_start_distance < (self.stick_section_dist[0][i+1] - self.stick_section_tolerance[0][i+1+1]) and not starts_here
-                    is_hingeline_end_between = hinge_end_distance > 0 and hinge_end_distance < (self.stick_section_dist[0][i+1] - self.stick_section_tolerance[0][i+1+1]) and not ends_here
+                    # check if hinge starts in the current section
+                    is_hingeline_start_between = hinge_start_distance >= tolerance and hinge_start_distance < (self.stick_section_dist[0][i+1] - tolerance) and not starts_here
+                    
+
+                    # print('current le: ', self.stick_le[0][i][1:3])
+                    # print('current hs: ', self.hingeline_start[n][1:3])
+                    # print('start_vec:  ', hinge_start_distance_vec)
+                    # print('current he: ', self.hingeline_end[n][1:3])
+                    # print('end_vec:    ', hinge_end_distance_vec)
 
                     # print(f"here  = {is_here}")
                     # print(f"start = {is_hingeline_start_between}")
@@ -317,13 +309,29 @@ class geometry_component():
                         self.stick_Ainc[0].insert(i+1,interped_Ainc)
                         self.stick_orig_num[0].insert(i+1,(self.stick_orig_num[0][i+1]+self.stick_orig_num[0][i])/2)
                         self.stick_section_dist[0].insert(i+1+1,np.sqrt(np.sum(np.square(self.stick_le[0][i+1][1:3] - self.stick_le[0][i][1:3]))))
-                        self.stick_section_tolerance[0].insert(i+1+1,self.stick_section_dist[0][i+1+1] * tolerance)
                         self.stick_section_angle[0].insert(i+1, (np.arctan2(self.stick_le[0][i+1][2] - self.stick_le[0][i][2], self.stick_le[0][i+1][1] - self.stick_le[0][i][1])))
 
                         index_modifier += 1
                         i += 1
 
-                    self.recalc_sections(tolerance)
+                    self.recalc_sections()
+
+                    # project hinge difference vectors onto section difference vectors to check if hinge starts and ends are within tolerance of existing sections
+                    hinge_end_distance_vec = self.hingeline_end[n][1:3] - self.stick_le[0][i][1:3]
+                    hinge_end_distance = np.dot(hinge_end_distance_vec, self.stick_le[0][i+1][1:3] - self.stick_le[0][i][1:3]) / self.stick_section_dist[0][i+1]
+                    
+                    hinge_end_angle = np.arctan2(hinge_end_distance_vec[1], hinge_end_distance_vec[0])
+                    #### implement angle tolerance check later #### TODO
+                    
+                    # check if hinge starts or ends at current section
+                    end_bounds = [hinge_end_distance - tolerance, hinge_end_distance + tolerance]
+                    ends_here = end_bounds[0] < 0 and end_bounds[1] > 0
+                    
+                    # check if control surface exists at current section
+                    is_here = hinge_start_distance < 0 and hinge_end_distance > 0
+                    
+                    # check if hinge ends in the current section
+                    is_hingeline_end_between = hinge_end_distance >= tolerance and hinge_end_distance < (self.stick_section_dist[0][i+1] - tolerance) and not ends_here
 
                     ### ENDS WITHIN?
                     if is_hingeline_end_between:
@@ -361,12 +369,11 @@ class geometry_component():
                         self.stick_Ainc[0].insert(i+1,interped_Ainc)
                         self.stick_orig_num[0].insert(i+1,(self.stick_orig_num[0][i+1]+self.stick_orig_num[0][i])/2)
                         self.stick_section_dist[0].insert(i+1+1,np.sqrt(np.sum(np.square(self.stick_le[0][i+1][1:3] - self.stick_le[0][i][1:3]))))
-                        self.stick_section_tolerance[0].insert(i+1+1,self.stick_section_dist[0][i+1+1] * tolerance)
                         self.stick_section_angle[0].insert(i+1, (np.arctan2(self.stick_le[0][i+1][2] - self.stick_le[0][i][2], self.stick_le[0][i+1][1] - self.stick_le[0][i][1])))
 
                         index_modifier += 1
 
-                    self.recalc_sections(tolerance)
+                    self.recalc_sections()
 
             # check to see if control surface should be defined for each section
             for n, hingeline_name in enumerate(self.hingeline_name):
@@ -382,13 +389,13 @@ class geometry_component():
                     hinge_end_distance_vec = self.hingeline_end[n][1:3] - self.stick_le[0][i][1:3]
                     hinge_end_distance = np.dot(hinge_end_distance_vec, self.stick_le[0][i+1][1:3] - self.stick_le[0][i][1:3]) / self.stick_section_dist[0][i+1]
 
-                    start_bounds = [hinge_start_distance - self.stick_section_tolerance[0][i+1], hinge_start_distance + self.stick_section_tolerance[0][i+1]]
-                    end_bounds = [hinge_end_distance - self.stick_section_tolerance[0][i+1], hinge_end_distance + self.stick_section_tolerance[0][i+1]]
+                    start_bounds = [hinge_start_distance - tolerance, hinge_start_distance + tolerance]
+                    end_bounds = [hinge_end_distance - tolerance, hinge_end_distance + tolerance]
 
                     starts_here = start_bounds[0] < 0 and start_bounds[1] > 0
                     ends_here = end_bounds[0] < 0 and end_bounds[1] > 0
 
-                    is_here = start_bounds[0] < 0 and hinge_end_distance - self.stick_section_tolerance[0][i+1] > 0
+                    is_here = start_bounds[0] < 0 and hinge_end_distance > 0
 
                     # print(hinge_start_distance)
                     # print(is_here)
@@ -412,25 +419,25 @@ class geometry_component():
     def create_lifting_surface(self, vortices_per_unit_length, loadpath, savepath):
         AVL_file = []
         surface_preamble = '''#--------------------------------------------------
-    SURFACE 
-    {} 
-    !Nchordwise  Cspace  Nspanwise  Sspace
-    12           1.0              
+SURFACE 
+{} 
+!Nchordwise  Cspace  Nspanwise  Sspace
+12           1.0              
 
-    COMPONENT 
-    1
+COMPONENT 
+1
 
-    ANGLE
-    0.0
+ANGLE
+0.0
 
-    SCALE
-    1.0   1.0   1.0
+SCALE
+1.0   1.0   1.0
 
-    TRANSLATE
-    0.0  0.0  0.0
+TRANSLATE
+0.0  0.0  0.0
 
 
-    '''.format(self.name+' '+str(self.num))
+'''.format(self.name+' '+str(self.num))
         AVL_file.append(surface_preamble)
         
         # create AVL section data
@@ -455,36 +462,35 @@ class geometry_component():
                 # write airfoil data files changes
                 with open(airfoil, 'w+') as f:
                     f.writelines(lines)
-                #print("Airfoil data file found: {}".format(airfoil))
+
             except FileNotFoundError:
-                #print("No airfoil data found for section {} {} {}".format(self.name'], self.ID'], self.orig_num'][i]))
                 airfoil = 'no_airfoil.dat'
 
 
             Xle, Yle, Zle = self.stick_le[0][i]
             chord = self.stick_chord[0][i]
             Ainc = self.stick_Ainc[0][i]
-            Nspanwise = np.max([np.int16(vortices_per_unit_length*self.stick_section_dist[0][i+1]), 1])
+            Nspanwise = np.max([np.int16(np.ceil(vortices_per_unit_length*self.stick_section_dist[0][i+1])), 1])
 
             new_section = '''SECTION
-    #Xle    Yle    Zle     Chord   Ainc  Nspanwise  Sspace
-    {:.2f}    {:.2f}    {:.2f}     {:.2f}    {:.2f}    {}    0
-    '''.format(Xle, Yle, Zle, chord, Ainc, Nspanwise)
+#Xle    Yle    Zle     Chord   Ainc  Nspanwise  Sspace
+{:.2f}    {:.2f}    {:.2f}     {:.2f}    {:.2f}    {}    0
+'''.format(Xle, Yle, Zle, chord, Ainc, Nspanwise)
 
             #if isinstance(self.orig_num'][i], int):
             new_section += '''AFILE
-    {}
-    '''.format(airfoil)
+{}
+'''.format(airfoil)
 
             if self.hingeline_name != None:
                 for hingeline_name in self.hingeline_name:
                     if self.hingeline_data[hingeline_name]['is_here'][i]:
                         new_section += '''CONTROL
-    {}     1.0   {:.2f}   0. 0. 0.   1   | name, gain,  Xhinge,  XYZhvec,  SgnDup
-    '''.format(hingeline_name, self.hingeline_data[hingeline_name]['x_c'][i])
+{}     1.0   {:.2f}   0. 0. 0.   1   | name, gain,  Xhinge,  XYZhvec,  SgnDup
+'''.format(hingeline_name, self.hingeline_data[hingeline_name]['x_c'][i])
 
             new_section += '''
-    '''
+'''
 
             AVL_file.append(new_section) # append section data to AVL file array
 
@@ -501,17 +507,17 @@ class geometry_component():
             geom_file.append('{} {}\n'.format(self.body_x_points[i], self.body_y_points[i]))
 
         body_entry = '''#=============================================
-    BODY
-    {}
-    28   1.0
-    #
-    TRANSLATE
-    0.0  {}  0.0
-    #
-    BFIL
-    {}
+BODY
+{}
+28   1.0
+#
+TRANSLATE
+0.0  {}  0.0
+#
+BFIL
+{}
 
-    '''.format(self.name + ' ' + str(self.num), self.body_y_offset, body_geom_file_name)
+'''.format(self.name + ' ' + str(self.num), self.body_y_offset, body_geom_file_name)
 
         # write body data to new .dat file
         with open(body_geom_file_name, 'w+') as f:
