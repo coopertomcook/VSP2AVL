@@ -4,17 +4,18 @@ import re
 
 class geometry_component():
 
-    def __init__(self):
-
-        self.begin_index = None
+    def __init__(self, file, begin_index):
         self.end_index = None
-        
-        self.is_lifting_surface = None
-        self.is_body = None
 
-        self.name = None
-        self.num = None
-        self.ID = None
+        self.begin_index = begin_index
+        next_line = re.split(r',\s*', file[begin_index+1])
+
+        self.is_lifting_surface = next_line[0] == 'LIFTING_SURFACE'
+        self.is_body = next_line[0] == 'BODY'
+
+        self.name = next_line[1]
+        self.num = next_line[2]
+        self.ID = next_line[3]
 
         # STICK MODEL VARIABLES
         self.stick_node_begin_index = []

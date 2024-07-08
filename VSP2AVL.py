@@ -7,17 +7,17 @@ import matplotlib.pyplot as plt
 
 #### USER SETTINGS #####################################
 # Change the working directory
-filepath = r""                  # CSV file name
-refNum = False                  # reference surface number (set to false if unknown)
+filepath = r"D:\Actual Documents\UC Davis\Programming\VSP2AVL\test_data\PelicanC6_DegenGeom.csv"                  # CSV file name
+refNum = 1                  # reference surface number (set to false if unknown)
 Sref = 0                        # reference wing area
 Cref = 0                        # reference chord length
 Bref = 0                        # reference span
 Xref, Yref, Zref = [0, 0, 0]    # center of gravity location
-mach_number = 0.82              # default mach number
+mach_number = 0.80              # default mach number
 tolerance = 0.05                # minimum allowed geometric distance between sections for hingeline section creation (make small)
-control_surfaces = True         # check for control surfaces in DegenGeom and add them to AVL file (may create new sections)
+control_surfaces = False        # check for control surfaces in DegenGeom and add them to AVL file (may create new sections)
 write_bodies = False            # choose whether to model bodies or not (experimental)
-vortices_per_unit_length = 0.5  # resolution of vortex lattices
+vortices_per_unit_length = 0    # resolution of vortex lattices
 debug_geom = False
 ########################################################
 
@@ -46,16 +46,7 @@ components = []
 # Look through CSV to find the starting line of each component. Save starting line index if it is a lifting surface, the name, and the ID of the component
 for i, line in enumerate(DegenGeom):
     if component_delimiter in line:
-        component = geom_data.geometry_component()
-        component.begin_index = i
-
-        next_line = re.split(r',\s*',DegenGeom[i+1])
-        component.is_lifting_surface = next_line[0] == 'LIFTING_SURFACE'
-        component.is_body = next_line[0] == 'BODY'
-
-        component.name = next_line[1]
-        component.num = next_line[2]
-        component.ID = next_line[3]
+        component = geom_data.geometry_component(DegenGeom,i)
 
         components.append(component)
 
