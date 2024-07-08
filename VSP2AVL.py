@@ -7,8 +7,8 @@ import matplotlib.pyplot as plt
 
 #### USER SETTINGS #####################################
 # Change the working directory
-filepath = r"D:\Actual Documents\UC Davis\Programming\VSP2AVL\test_data\PelicanC6_DegenGeom.csv"                  # CSV file name
-refNum = 1                  # reference surface number (set to false if unknown)
+filepath = r""                  # CSV file name
+refNum = None                   # reference surface number (set to false if unknown)
 Sref = 0                        # reference wing area
 Cref = 0                        # reference chord length
 Bref = 0                        # reference span
