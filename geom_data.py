@@ -227,8 +227,6 @@ class geometry_component():
                 self.hingeline_start[i] = self.hingeline_end[i]
                 self.hingeline_end[i] = old_start
 
-
-
     def recalc_sections(self):
         for iter in range(len(self.stick_le[0])-1):
             self.stick_section_dist[0][iter+1] = np.sqrt(np.sum(np.square(self.stick_le[0][iter+1][1:3] - self.stick_le[0][iter][1:3])))
@@ -533,9 +531,9 @@ BFIL
     @staticmethod
     def quadrant(angle):
         if angle > np.pi:
-            angle -= np.pi
+            angle -= 2*np.pi
         elif angle < -np.pi:
-            angle += np.pi
+            angle += 2*np.pi
 
         if angle < np.pi/2 and angle >= 0:
             quad = 1
@@ -548,5 +546,4 @@ BFIL
                 else:
                     if angle < 0:
                         quad = 4
-
         return quad
