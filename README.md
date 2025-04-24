@@ -10,8 +10,13 @@ VSP2AVL has limited capability to convert bodies into AVL, andâ€”at the momentâ€
 
 VSP2AVL has been tested on Python 3.11.5 and NumPy 1.24.3 on a Windows machine.
 
+## Requirements
+* Python >= 3.11
+* NumPy
+* MatPlotLib
+
 ### Disclaimer:
-VSP2AVL is **not guaranteed by any means** to provide an accurate output, so it is always recommended to check the .avl output to ensure it gives the desired translation.
+VSP2AVL is **not guaranteed by any means** to provide an accurate output, so it is always recommended to check the .avl output to ensure it gives the desired translation. This program will not be regularly maintained, so if it seems broken, feel free to submit an issue.
 
 ## Sample Images
 
@@ -36,7 +41,7 @@ Sample Trefftz plot
 
 2. Export airfoil geometry data into the same folder as the `.csv` using `File > Export > Airfoil Points (.dat) > OK`. This airfoil coordinate data will be modified and pointed to in the `.avl` file.
 
-3. In Command Prompt or Powershell, run `python VSP2AVL.py` in order to create the `config.ini` configuration file.
+3. In a terminal, run `python VSP2AVL.py` in order to create the `config.ini` configuration file.
 
 4. Add relevant AVL reference information to `config.ini`: 
 
@@ -54,13 +59,13 @@ Sample Trefftz plot
     .
     7. Easy debugging via output geometry plotting is possible by setting `post processing geometry plot` to `yes`.
   
-5. Run `python VSP2AVL.py` in command prompt with argument `filepath`. This will create a new file of name `filename.avl` which can be used with AVL.
+5. Run `python VSP2AVL.py "filepath"` in a terminal. This will create a new file of name `filename.avl` in the source folder which can be used with AVL.
 
 Example usage: `python VSP2AVL.py "C:\Users\user\Documents\A320_DegenGeom.csv"`
 
-Add in the `--debug` argument to force `post processing geometry plot`.
+Add in the `--debug` argument to force `post processing geometry plot`, e.g. `python VSP2AVL.py "C:\Users\user\Documents\A320_DegenGeom.csv" --debug`
 
-## Future Work
+## Future Work (Probably Not Happening Here)
 * Bug testing
 
 * Implementing cruciform lifting surface body modeling
