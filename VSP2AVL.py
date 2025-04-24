@@ -58,10 +58,12 @@ debug_geom = VSP2AVL_config.getboolean('post processing geometry plot')
 ##############################################################################
 
 parser = argparse.ArgumentParser(prog='VSP2AVL', description='Translate OpenVSP DegenGeom files into AVL files.')
-parser.add_argument('filepath', type=str, nargs=1, help='DegenGeom CSV file path')
+parser.add_argument('filepath', type=str, nargs='?', help='DegenGeom CSV file path')
 parser.add_argument('--debug', action='store_true', help='plot processed lifting surface data')
 args = parser.parse_args()
 
+if args.filepath is None:
+    sys.exit('[VSP2AVL] No path given. Exiting...')
 
 filepath = os.path.join(args.filepath[0])
 debug_geom += args.debug
@@ -92,7 +94,7 @@ for i, line in enumerate(DegenGeom):
         components.append(component)
 
 if len(components) == 0:
-    sys.exit('Error: Input file has no components. Ensure path to DegenGeom .csv is correct.')
+    sys.exit('[VSP2AVL] Input file has no components. Ensure path to DegenGeom .csv is correct.')
 
 # For each component, if it is a lifting surface, find the STICK_NODE section and save the beginning and end of that section
 for i, component in enumerate(components):
