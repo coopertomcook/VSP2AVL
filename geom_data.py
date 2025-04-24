@@ -248,6 +248,9 @@ class geometry_component():
                     hinge_start_distance_vec = self.hingeline_start[n][1:3] - self.stick_le[0][i][1:3]
                     hinge_start_distance = np.dot(hinge_start_distance_vec, self.stick_le[0][i+1][1:3] - self.stick_le[0][i][1:3]) / self.stick_section_dist[0][i+1]
                     
+                    hinge_end_distance_vec = self.hingeline_end[n][1:3] - self.stick_le[0][i][1:3]
+                    hinge_end_distance = np.dot(hinge_end_distance_vec, self.stick_le[0][i+1][1:3] - self.stick_le[0][i][1:3]) / self.stick_section_dist[0][i+1]
+                    
                     hinge_start_angle = np.arctan2(hinge_start_distance_vec[1], hinge_start_distance_vec[0])
                     #### implement angle tolerance check later #### TODO
 
